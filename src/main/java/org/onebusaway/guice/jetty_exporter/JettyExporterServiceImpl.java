@@ -26,6 +26,7 @@ import javax.annotation.PreDestroy;
 import javax.servlet.Servlet;
 
 import org.mortbay.jetty.Server;
+import org.mortbay.jetty.bio.SocketConnector;
 import org.mortbay.jetty.servlet.Context;
 import org.mortbay.jetty.servlet.ServletHolder;
 
@@ -45,16 +46,34 @@ public class JettyExporterServiceImpl {
     Map<Integer, List<ServletSource>> servicesByPort = groupServicesByPort(_services);
 
     for (int port : servicesByPort.keySet()) {
+    	
+            
+    	SocketConnector connector=new SocketConnector();
+    	
 
-      Server server = new Server(port);
-      Context context = new Context(server, "/", Context.SESSIONS);
+    	String hostName=null;
+        connector.setPort(port);
+        
+        Server server = new Server();
+        
+        server.addConnector(connector);
+        
+        
+        Context context = new Context(server, "/", Context.SESSIONS);
 
-      for (ServletSource service : servicesByPort.get(port)) {
-        URL url = service.getUrl();
-        Servlet servlet = service.getServlet();
-        context.addServlet(new ServletHolder(servlet), url.getPath());
+		for (ServletSource service : servicesByPort.get(port)) {
+			URL url = service.getUrl();
+			
+			hostName=url.getHost();
+
+			Servlet servlet = service.getServlet();
+			context.addServlet(new ServletHolder(servlet), url.getPath());
+		}
+      if(hostName!=null && hostName.length()>0)
+      {
+    	  connector.setHost(hostName);
       }
-
+		
       _servers.add(server);
     }
 
